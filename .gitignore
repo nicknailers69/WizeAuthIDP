@@ -1,0 +1,4 @@
+WizeSecrets
+*.iml
+src/config
+node_modules

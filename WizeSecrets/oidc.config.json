@@ -1,0 +1,18 @@
+{
+  "oidc": {
+    "oidc_discovery_url": "",
+    "oidc_discovery_ca_pem": "",
+    "oidc_client_id": "",
+    "oidc_client_secret": "",
+    "oidc_response_mode": "query",
+    "oidc_response_types": "code",
+    "jwks_url": "",
+    "jwks_ca_pem": "",
+    "jwk_validation_pukeys": [],
+    "bound_issuer": "",
+    "jwt_supported_algs": [],
+    "default_role": "",
+    "provider_config": "",
+    "name_space_in_state": 1
+  }
+}

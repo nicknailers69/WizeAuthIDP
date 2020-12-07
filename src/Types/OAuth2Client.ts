@@ -1,0 +1,34 @@
+export type OAuth2Client = {
+    AllowedCorsOrigins:string[];
+    BackchannelLogoutSessionRequired?:boolean;
+    BackchannelLogoutURI?:string;
+    ClientID?:string;
+    ClientName?:string;
+    ClientSecret?:string;
+    ClientSecretExpAt?:number;
+    ClientURI?:string;
+    Contacts?:string[];
+    CreatedAt?:number;
+    FrontchannelLogoutSessionRequired?:boolean;
+    FrontchannelLogoutURI?:string;
+    GrantTypes?:string[];
+    Jwks?:any;
+    JwksURI?:string;
+    LogoURI?:string;
+    Metadata?:Map<string,string>;
+    Owner?:string;
+    PolicyURI?:string;
+    PostLogoutRedirectURIs:string[];
+    RedirectURIs:string[];
+    RequestObjSigningAlg?:string;
+    RequestURIs?:string[];
+    ResponseTypes?:string[];
+    Scope?:string;
+    SectorIdentifierURI?:string;
+    SubjectType?:string;
+    TokenEndpointAuthMethod?:string;
+    TokenEndpointAuthSingingAlg?:string;
+    TosURI?:string;
+    UpdatedAt?:number;
+    UserinfoSignedResponseAlg?:string;
+}

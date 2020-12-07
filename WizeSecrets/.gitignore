@@ -1,0 +1,4 @@
+.env
+.env.vault
+vault.config.env
+node_modules

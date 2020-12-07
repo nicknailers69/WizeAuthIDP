@@ -1,0 +1,110 @@
+{
+  "log": {
+    "level": "info",
+    "format": ""
+  },
+  "serve": {
+    "public": {
+      "port": 3333,
+      "cors": {
+        "enabled": 1,
+        "allowed_origins": [],
+        "allowed_methods": [],
+        "allowed_headers": [],
+        "exposed_headers": [],
+        "allow_credentials": 1,
+        "max_age": 0,
+        "debug": 1
+      }
+    },
+    "admin": {
+      "port": 3343,
+      "cors": {
+        "enabled": 1,
+        "allowed_origins": "",
+        "allowed_methods": "",
+        "allowed_headers": "",
+        "exposed_headers": "",
+        "allow_credentials": 1,
+        "max_age": 0,
+        "debug": 1
+      }
+    },
+    "tls": {
+      "key": {
+        "path": ""
+      },
+      "cert": {
+        "path": ""
+      }
+    }
+  },
+    "cookies": {
+      "same_site_mode": "Lax"
+    },
+    "dsn": "mysql://localhost:3306/wizeauth",
+    "webfinger": {
+      "jwks": {
+        "broadcast_keys": ""
+      },
+      "oidc_discovery": {
+        "client_registration_url": "",
+        "supported_claims": "email",
+        "supported_scopes": "email",
+        "userinfo_url": ""
+      }
+    },
+    "oidc":  {
+      "supported_identifiers": {
+        "supported_types": {}
+      },
+      "dynamic_client_registration": {
+        "default_scope": ["openid","offline","offline_access"]
+      }
+    },
+    "urls": {
+      "self": {
+        "issuer": "http://localhost",
+        "public": "http://localhost"
+      },
+      "login": "https://domain.com/login",
+      "consent": "https://domain.com/consent",
+      "logout": "https://domaine.com/logout",
+      "error": "https://domain.com/error",
+      "post_logout_redirect": ""
+    },
+    "strategies": {
+      "ttl": {
+        "login_consent_request": 3600,
+        "access_token": 3600,
+        "refresh_token": 86400,
+        "id_token": 3600,
+        "auth_code": 600
+      },
+      "oauth2": {
+        "expose_internal_errors": 1,
+        "hashers": {
+          "bcrypt": {
+            "cost": 10,
+            "enable": 0
+          },
+          "argon2": {
+            "enable": 1
+          }
+        },
+        "pkce": {
+          "enforced": 0,
+          "enforced_for_public_clients": 0
+        },
+        "session": {
+          "encrypt_at_rest": 1
+        }
+      }
+    },
+    "secrets":
+      {
+        "system": "",
+        "cookie": ""
+      }
+
+  }

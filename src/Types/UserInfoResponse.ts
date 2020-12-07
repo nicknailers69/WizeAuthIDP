@@ -1,0 +1,21 @@
+export type UserInfoResponse = {
+    Birthdate?:string;
+    Email?:string;
+    EmailVerified?:boolean;
+    FamilyName?:string;
+    Gender?:string;
+    GivenName?:string;
+    Locale?:string;
+    MiddleName?:string;
+    Name?:string;
+    Nickname?:string;
+    PhoneNumber?:string;
+    PhoneNumberVerified?:boolean;
+    Picture?:string;
+    PreferredUsername?:string;
+    Profile?:string;
+    Sub?:string;
+    UpdatedAt?:number;
+    Website?:string;
+    Zoneinfo?:string;
+}
