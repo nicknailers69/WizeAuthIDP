@@ -6,7 +6,8 @@ import * as events from "events";
 import {DEFAULT_CLAIMS} from "../shared/interfaces/OpenIDConnect";
 import {Keystore} from "../shared/libs/Keystore";
 import {JWK} from "node-jose";
-
+import * as Express from "express";
+import {Models} from "../models/src";
 
 
 export interface IWizeAuth {
@@ -55,22 +56,47 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
         this._ctx = new Context();
         this._ctx.injectDatabaseInContext().then((ctx:DefaultContext) =>{
             this.ctx = ctx;
-            this.db = this.getDB();
+            this.db = ctx.db;
 
-        });
+
 
         const self = this;
         self.responseModes = new Map();
         self.grantTypeHandlers = new Map();
         self.grantTypeDupes = new Map();
         self.grantTypeParams = new Map([[undefined, new Set()]]);
-        self.Account = {findAccount: () => {return this.config.parsed.test_users.admin}};
-        self.Claims = DEFAULT_CLAIMS;
+        self.Claims = this.ctx.OIDContext.claims_supported;
+        self.ClientModel = Models.client;
+        self.Account = {findAccount: async () => {await this.db.manager.find(Models.user);}};
+        self.OIDCContext = this.ctx.OIDContext;
+        self.OIDCContext.issuer = this.issuer;
         const KeyStore = new Keystore();
         console.log("Loading KeyStore.....");
         KeyStore.loadKeys().then(ks => {
             this.KeyStore = ks;
             console.log(`${ks.all().length} Keys loaded as WizeAuth JWKS KeyStore`);
+            console.info("you can view them at http://localhost:3333/.well-known/jwks.json");
+        });
+
+        this.app.use('/.well-known/jwks.json', (req, res) => {
+            res.json(this.KeyStore.toJSON());
+            res.end;
+        });
+
+        self.OIDCContext.jwks_uri = "/.well-known/jwks.json";
+        self.OIDCContext.authorization_endpoint = "/user/auth/authorize";
+        self.OIDCContext.token_endpoint = "/user/auth/token";
+        self.OIDCContext.userinfo_endpoint = "/user/info";
+
+        this.app.use('/.well-known', (req, res) => {
+            res.json(self.OIDCContext);
+            res.end;
+        });
+
+            console.log(this.ctx);
+
+
+
         });
 
 
