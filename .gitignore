@@ -1,4 +1,7 @@
-WizeSecrets/**/*
-./*.iml
-./src/config
+WizeSecrets
+WizeSecrets/*.*
+.env
+.env.*
+*.iml
+src/config
 node_modules
