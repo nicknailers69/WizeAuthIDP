@@ -27,6 +27,7 @@
     "node-jose": "^2.0.0",
     "node-rsa": "^1.1.1",
     "node-unique-machine-id": "^1.1.0",
+    "ntrujs": "^1.0.18",
     "object-hash": "^2.0.3",
     "pkce-challenge": "^2.1.0",
     "plist": "^3.0.1",

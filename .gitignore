@@ -6,3 +6,4 @@
 */*.iml
 /src/config/*
 /node_modules
+node_modules/
