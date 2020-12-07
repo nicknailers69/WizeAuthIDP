@@ -12,13 +12,16 @@ export class Keystore {
     constructor(createNew:boolean=false) {
 
         if(createNew === true) {
+
             this.createNewKeyStore().then((response:JWKS.JWK.KeyStore) => {
                     this._keystore = response;
             }).catch(err => {
                 console.log(err);
             });
         } else {
-            this.loadKeys().then().catch(err => console.log(err));
+            this.loadKeys().then(ks => {
+                this._keystore = ks;
+            }).catch(err => console.log(err));
         }
 
 
@@ -26,11 +29,35 @@ export class Keystore {
     }
 
     async createNewKeyStore():Promise<any> {
-        this._keystore = JWKS.JWK.createKeyStore();
-        this.addNewRSAKeyToKeyStore("sig").then(() => {
-            this._keystore.add(this.jwks.pop()).then((res) => {
-                console.log(res);
-            }).catch(err => console.log(err));
+       let ks = this._keystore;
+
+       let keys = [];
+
+
+        this.addNewRSAKeyToKeyStore("sig").then((a) => {
+           // this._keystore.add(this.jwks.pop()).then((res) => {
+                JWKS.JWK.asKeyStore(JSON.stringify(this.jwks)).then(k => {
+                    ks = k;
+                    for(let i = 0; i<10;i++){
+                        this.generateKey('RSA', 2048, {use: "sig", alg: "RSA-OAEP"}).then((key: any) => {
+                           keys.push(key.toJSON(true));
+
+                           if(keys.length == 10) {
+                               JWKS.JWK.asKeyStore(JSON.stringify(keys)).then(keystore => {
+
+                                   fs.writeFileSync(path.resolve(__dirname, "../..", ".keys", "jwks.json"), JSON.stringify({keys:keys}));
+                               }).catch(err => console.log(err))
+                           }
+                        });
+
+
+                    }
+
+
+
+                })
+
+          //  }).catch(err => console.log(err));
         }).catch(err => console.log(err));
     }
 
@@ -109,16 +136,20 @@ export class Keystore {
 
      }
 
+     public getKeystore() {
+        return this._keystore;
+     }
+
      async loadKeys() {
 
         const keyPath = path.resolve(__dirname, "../..", ".keys", "jwks.json");
-        const keys = [fs.readFileSync(keyPath).toString()];
+        const keys = JSON.parse(fs.readFileSync(keyPath).toString());
         let keystore;
         try {
-            keystore = await JWKS.JWK.asKeyStore(keys);
+            keystore = await JWKS.JWK.asKeyStore(JSON.stringify(keys));
             if(keystore) {
-                this._keystore = keystore;
-                return true;
+
+                return keystore;
             }
         } catch(err) {
             return err;

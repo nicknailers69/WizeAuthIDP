@@ -16,7 +16,7 @@ const redisStore = require('connect-redis')(Session);
 const redisClient = Redis.createClient();
 const expressSanitizer = require('express-sanitizer');
 const requestIp = require('request-ip');
-
+const app = Express();
 
 @Injectable()
 export class Application extends WizeAuth {
@@ -30,9 +30,8 @@ export class Application extends WizeAuth {
     private _registry:any;
 
     constructor() {
-        super();
-        this.config = Config;
-        this.app = Express();
+        super(app, "wizeauth", Config);
+
         this.app.disable('x-powered-by');
         this.app.set('trust proxy', true);
         this.app.use(requestIp.mw())
