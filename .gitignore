@@ -1,8 +1,8 @@
 .idea
-WizeSecrets
-WizeSecrets/src/*
-.env
-.env.*
-*.iml
-src/config/*
-node_modules
+/WizeSecrets/*.*
+/WizeSecrets/src/*
+*/.env
+*/.env.*
+*/*.iml
+/src/config/*
+/node_modules
