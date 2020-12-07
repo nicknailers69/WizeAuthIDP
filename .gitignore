@@ -1,5 +1,6 @@
-WizeSecrets
-WizeSecrets/*.*
+.idea
+./WizeSecrets
+./WizeSecrets/*.*
 .env
 .env.*
 *.iml
