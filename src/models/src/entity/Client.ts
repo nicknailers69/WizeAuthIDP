@@ -26,8 +26,8 @@ export class Client {
     User: User;
 
 
-    @Column({array:true, type:"string"})
-    redirect_uris:string[];
+    @Column()
+    redirect_uris: string;
 
     
     @Column()

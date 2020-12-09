@@ -96,8 +96,7 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
             res.end;
         });
 
-        this.app.use('/login', self.validateUser, self.afterLogin);
-
+      
 
 
     }
@@ -115,28 +114,19 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
 
     }
 
-    validateUser(req:Express.Request, res:Express.Response, next:Express.NextFunction) {
-
-        const { email, password } = req.body;
-        const self = this;
-        self.Account.findAccount(email).then((acct:User) => {
-
-            const hash = acct.password;
-            VerifyArgon2(password, hash).then((valid: boolean) => {
-                if (!valid) {
-                    next(new Error("invalid credentials."));
-                }
-
-                next(acct);
-
-            }).catch(err => console.log(err));
-
-        })
-
-    }
+   
 
     afterLogin(req: Express.Request, res: Express.Response, next:Express.NextFunction) {
         res.redirect(req.params.redirect_uri || '/user/callback');
+    }
+
+    createUser(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
+        
+        this.db.getRepository(User).save(req.body).then(u => {
+            next(u);
+        }).catch(err => console.log(err));
+
+
     }
 
 }

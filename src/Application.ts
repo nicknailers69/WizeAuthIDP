@@ -16,6 +16,7 @@ const redisStore = require('connect-redis')(Session);
 const redisClient = Redis.createClient();
 import expressSanitizer from 'express-sanitizer';
 import requestIp from 'request-ip';
+import expressIP from 'express-ip';
 const app = Express();
 
 @Injectable()
@@ -34,7 +35,7 @@ export class Application extends WizeAuth {
 
         this.app.disable('x-powered-by');
         this.app.set('trust proxy', true);
-        this.app.use(requestIp.mw())
+        this.app.use(expressIP().getIpInfoMiddleware);
         this.app.use(Express.json());
         this.app.use(Express.urlencoded({extended:false}));
         this.app.use(expressSanitizer());
@@ -47,11 +48,12 @@ export class Application extends WizeAuth {
                 saveUninitialized:true
             }
         ));
-        this.app.use(function (req, res, next) {
+        this.app.use(function (req:any, res, next) {
             if (!req.session) {
                 return next(new Error('session is not set!')) // handle error
             }
             res.locals.session = req.session;
+            console.log(req.ipInfo);
             next() // otherwise continue
         })
         this.app.use(CSURF({cookie:true}));
@@ -66,6 +68,7 @@ export class Application extends WizeAuth {
 
             ctx.current_ip = req.clientIp;
             ExpressHttpContext.set('ctx', ctx);
+            ExpressHttpContext.set('conn', conn);
          console.log((ExpressHttpContext.get('ctx')));
            next();
         });

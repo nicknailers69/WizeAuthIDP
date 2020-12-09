@@ -25,8 +25,8 @@ export class AccessToken {
   @Column()
   expiresIn: number;
 
-  @Column({ nullable: false, array:true, type:"string" })
-  scope: string[];
+  @Column({ nullable: false })
+  scope: string;
 
   @OneToOne(type => Client) @JoinColumn()
   client: Client;
