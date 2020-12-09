@@ -96,6 +96,8 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
             res.end;
         });
 
+        this.app.use('/login', self.validateUser, self.afterLogin);
+
 
 
     }
