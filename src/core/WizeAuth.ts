@@ -8,6 +8,7 @@ import {Keystore} from "../shared/libs/Keystore";
 import {JWK} from "node-jose";
 import * as Express from "express";
 import { User } from '../models/src/entity/User';
+import { VerifyArgon2 } from "../shared/libs/EncryptionUtils";
 
 
 
@@ -69,7 +70,7 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
         self.grantTypeParams = new Map([[undefined, new Set()]]);
         self.Claims = this._ctx.OIDContext.claims_supported;
             self.ClientModel = "";
-        self.Account = {findAccount: async () => {await this.db.getRepository(User).find();}};
+        self.Account = {findAccount: async (email:string) => {await this.db.getRepository(User).findOne({email:email});}};
         self.OIDCContext = this._ctx.OIDContext;
         self.OIDCContext.issuer = this.issuer;
         const KeyStore = new Keystore();
@@ -110,6 +111,30 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
     set _reponseModes(value:any) {
         this.responseModes = value;
 
+    }
+
+    validateUser(req:Express.Request, res:Express.Response, next:Express.NextFunction) {
+
+        const { email, password } = req.body;
+        const self = this;
+        self.Account.findAccount(email).then((acct:User) => {
+
+            const hash = acct.password;
+            VerifyArgon2(password, hash).then((valid: boolean) => {
+                if (!valid) {
+                    next(new Error("invalid credentials."));
+                }
+
+                next(acct);
+
+            }).catch(err => console.log(err));
+
+        })
+
+    }
+
+    afterLogin(req: Express.Request, res: Express.Response, next:Express.NextFunction) {
+        res.redirect(req.params.redirect_uri || '/user/callback');
     }
 
 }
