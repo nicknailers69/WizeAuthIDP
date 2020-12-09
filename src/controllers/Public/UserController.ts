@@ -108,4 +108,10 @@ export default class UserController {
 
     }
 
+    @Get('/user/callback')
+    public callbackfunction(req: any, res: Response) {
+        res.json(req);
+        res.end();
+    }
+
 }

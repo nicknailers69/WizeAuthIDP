@@ -29,8 +29,8 @@ export class Application extends WizeAuth {
     private _jwks:any;
     private _registry:any;
 
-    constructor() {
-        super(app, "wizeauth", Config);
+    constructor(conn:any) {
+        super(conn, app, "wizeauth", Config);
 
         this.app.disable('x-powered-by');
         this.app.set('trust proxy', true);
@@ -150,6 +150,7 @@ export class Application extends WizeAuth {
     }
 
     getApp() {
+       
         return this.app;
     }
 

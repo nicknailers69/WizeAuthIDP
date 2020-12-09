@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "argon2": "^0.27.0",
     "connect-redis": "^5.0.0",
     "cookie-parser": "^1.4.5",
     "cookies": "^0.8.0",
@@ -27,7 +28,6 @@
     "node-jose": "^2.0.0",
     "node-rsa": "^1.1.1",
     "node-unique-machine-id": "^1.1.0",
-    "ntrujs": "^1.0.18",
     "object-hash": "^2.0.3",
     "pkce-challenge": "^2.1.0",
     "plist": "^3.0.1",
@@ -38,6 +38,7 @@
     "uuid": "^8.3.1"
   },
   "devDependencies": {
+    "@types/argon2": "^0.15.0",
     "@types/connect-redis": "0.0.15",
     "@types/cookie-parser": "^1.4.2",
     "@types/cookies": "^0.7.5",

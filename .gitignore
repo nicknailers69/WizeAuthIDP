@@ -1,9 +1,12 @@
 .idea
-/WizeSecrets/*.*
-/WizeSecrets/src/*
 */.env
 */.env.*
 */*.iml
 /src/config/*
 /node_modules
 node_modules/
+.env
+/data/*.*
+data
+*.iml
+

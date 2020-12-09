@@ -49,17 +49,17 @@ export class ServerMachine implements ServerEnvironment {
                 }
             }
 
-            else if(os.platform() === "darwin") {
+            else if(os.platform() === "darwin" || os.platform() === "win32") {
                     this.os.os_type = "darwin";
                     this.os.os_dist = os.release();
                     this.os.os_version = os.version();
             }
 
-            else if(os.platform() !== "linux" && os.platform() !== "darwin") {
+          /*  else if(os.platform() !== "linux" && os.platform() !== "darwin") {
                 const err = new Error('server platform is not supported ('+os.platform()+'). If you are trying to run this application for development purpose, use docker-compose with the provided docker-compose.yml file. Will now exit.');
                 console.error(err);
                 process.exit(999);
-            }
+            }*/
             this.os.os_homedir = path.resolve(os.homedir());
             this.os.os_tmpdir = path.resolve(os.tmpdir());
             this.uptime = os.uptime().toString(10);

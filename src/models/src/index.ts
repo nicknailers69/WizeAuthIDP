@@ -25,23 +25,5 @@ export default createConnection().then(async connection => {
 }).catch(error => console.log(error));*/
 
 
-export const Connection = async () => {
-
-    let connection;
-    try {
-        connection = await createConnection();
-        if(connection) {
-            return connection;
-        }
-    } catch(err) {
-        console.log(err);
-    }
-
-}
-
-export const Models = {
-    "user":User,
-    "client":Client
-}
-
-
+export const Connection = async () => await createConnection();
+   
