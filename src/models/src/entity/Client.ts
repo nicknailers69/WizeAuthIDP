@@ -1,21 +1,25 @@
-import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn} from "typeorm";
 @Entity()
 export class Client {
 
     @PrimaryGeneratedColumn()
-    ID:string;
+    Identity: number;
+
+    @Column({unique:true, nullable:false})
+    Key: string;
+
+    @Column({unique:true, nullable:false})
+    Secret: string;
+    
+    @Column({ unique: true, nullable: false })
+    Name: string;
 
     @Column()
-    OutfacingID:string;
+    Image: string;
 
-    @Column()
-    Name:string;
 
-    @Column()
-    Secret:string;
-
-    @Column()
-    redirect_uris:string;
+    @Column({array:true, type:"string"})
+    redirect_uris:string[];
 
     @Column()
     grant_types:string;

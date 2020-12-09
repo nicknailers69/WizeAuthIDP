@@ -9,13 +9,13 @@ import CookieParser from "cookie-parser";
 import * as Redis from "redis";
 import Session from "express-session";
 
-const ExpressHttpContext = require("express-http-context");
-const ExpressHandlebars = require("express-handlebars");
-const CSURF = require("csurf");
+import ExpressHttpContext from "express-http-context";
+import ExpressHandlebars from "express-handlebars";
+import CSURF from "csurf";
 const redisStore = require('connect-redis')(Session);
 const redisClient = Redis.createClient();
-const expressSanitizer = require('express-sanitizer');
-const requestIp = require('request-ip');
+import expressSanitizer from 'express-sanitizer';
+import requestIp from 'request-ip';
 const app = Express();
 
 @Injectable()
