@@ -1,6 +1,4 @@
 .idea
-/WizeSecrets/*.*
-/WizeSecrets/src/*
 */.env
 */.env.*
 */*.iml
