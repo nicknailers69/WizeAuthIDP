@@ -1,0 +1,52 @@
+version: '3.1'
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8000:80"
+      - "443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default
+      - ./docker/nginx/nginx.conf:/etc/nginx/sites-available/default
+    links:
+      - app
+    env_file: ./.env
+  app:
+    image: wizeauth/dev
+    container_name: wizeauth
+    working_dir: /opt/wizeauth
+    volumes:
+      - .
+    links:
+      - mysql
+      - redis
+      - mailhog
+    ports:
+      - "3333"
+    entrypoint: /opt/wizeauth/src/index.ts
+    env_file: ./.env
+    environment:
+      "NODE_ENV": "development"
+  mysql:
+    env_file: ./.env
+    image: mysql:5.7
+    container_name: mysql
+    environment:
+      "MYSQL_DATABASE": "wizeauth"
+      "MYSQL_ROOT_PASSWORD": "69F2AF93541E1EA838F40EE3744EFF60FEDF13F8C0CC07F12643C41589CBA6B1"
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./data/db:/var/lib/mysql
+    restart: always
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "8025:8025"

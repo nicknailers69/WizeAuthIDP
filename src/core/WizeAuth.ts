@@ -7,7 +7,8 @@ import {DEFAULT_CLAIMS} from "../shared/interfaces/OpenIDConnect";
 import {Keystore} from "../shared/libs/Keystore";
 import {JWK} from "node-jose";
 import * as Express from "express";
-import {Models} from "../models/src";
+import { User } from '../models/src/entity/User';
+
 
 
 export interface IWizeAuth {
@@ -21,7 +22,8 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
 
     _ctx:Context;
     ctx:DefaultContext;
-    db:any
+    db: any;
+    repo: any;
     issuer:string;
     config:any;
     app:Express.Application;
@@ -48,15 +50,15 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
     OIDCContext:any;
     KeyStore:JWK.KeyStore;
 
-    constructor(app:Express.Application, issuer:string, config:any) {
+    constructor(conn:any, app:Express.Application, issuer:string, config:any) {
         super();
         this.app = app;
         this.config = config;
         this.issuer = issuer;
-        this._ctx = new Context();
-        this._ctx.injectDatabaseInContext().then((ctx:DefaultContext) =>{
-            this.ctx = ctx;
-            this.db = ctx.db;
+        this._ctx = new Context().create();
+        
+
+            this.db = conn;
 
 
 
@@ -65,10 +67,10 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
         self.grantTypeHandlers = new Map();
         self.grantTypeDupes = new Map();
         self.grantTypeParams = new Map([[undefined, new Set()]]);
-        self.Claims = this.ctx.OIDContext.claims_supported;
-        self.ClientModel = Models.client;
-        self.Account = {findAccount: async () => {await this.db.manager.find(Models.user);}};
-        self.OIDCContext = this.ctx.OIDContext;
+        self.Claims = this._ctx.OIDContext.claims_supported;
+            self.ClientModel = "";
+        self.Account = {findAccount: async () => {await this.db.getRepository(User).find();}};
+        self.OIDCContext = this._ctx.OIDContext;
         self.OIDCContext.issuer = this.issuer;
         const KeyStore = new Keystore();
         console.log("Loading KeyStore.....");
@@ -93,11 +95,6 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
             res.end;
         });
 
-            console.log(this.ctx);
-
-
-
-        });
 
 
     }
