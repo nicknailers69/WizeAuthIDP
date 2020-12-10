@@ -139,7 +139,7 @@ export class JsonWebToken {
         try {
 
             let ks = await this.keystore.loadKeys();
-            let key = await JWKS.JWK.asKey(ks.all({use: 'sig'}), 'private');
+            let key = await JWKS.JWK.asKey(ks.get({use: 'sig'}), 'private');
             if(key) {
                 let sig = await JWKS.JWS.createSign(key).update(data).final();
                 if(sig) {

@@ -19,11 +19,11 @@ export class Client {
     @Column({ unique: true, nullable: false })
     Name: string;
 
-    @Column()
+    @Column({default:""})
     Image: string;
 
-    @OneToOne(type => User) @JoinColumn()
-    User: User;
+    @Column({ nullable: false })
+    User: number;
 
 
     @Column()

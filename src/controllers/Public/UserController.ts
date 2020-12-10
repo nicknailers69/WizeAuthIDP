@@ -8,8 +8,15 @@ import {createValidator, ValidatedRequest} from "express-joi-validation";
 const ExpressHttpContext = require("express-http-context");
 import { UserHelper } from "../Helpers/UserHelper";
 import { User } from '../../models/src/entity/User';
+import { Profile } from '../../models/src/entity/Profile';
+import { ProfileMeta } from '../../models/src/entity/ProfileMeta';
+import { Client } from '../../models/src/entity/Client';
 import { VerifyArgon2 } from "../../shared/libs/EncryptionUtils";
 import { getRepository, getConnection, createConnection } from "typeorm";
+import * as UUID from "uuid";
+import slugify from "slugify";
+import { ClientHelper } from '../Helpers/Client';
+import { AuthenticateRequest } from '../../core/oidc/requests';
 
 const validator = createValidator();
 
@@ -112,7 +119,14 @@ export default class UserController {
             if (user) {
                 this.validateUser(req.body._password, user).then((v: any) => {
                     req.session.user = v;
-                    res.redirect("/user/callback");
+                    req.csrf = req.csrfToken();
+                    //we unset sensitive data
+                    delete req.session.user.password;
+                    delete req.session.user.birthdate;
+                    delete req.session.user.phone_number;
+                    req.session.isLoggedIn = 1;
+                    req.session.isAuthorized = 0;
+                    res.redirect("/user/callback?state="+req.csrfToken());
                 }).catch(err => {
                     console.log(err);
                     res.status(401).send("invalid credentials.");
@@ -140,6 +154,7 @@ export default class UserController {
                 if (!valid) {
                     reject(new Error("invalid credentials."));
                 }
+               
                 resolve(acct);
 
             }).catch(err => {
@@ -154,38 +169,74 @@ export default class UserController {
     }
 
     // @ts-ignore
-    @Post('/signup')
+    @Get('/signup')
     public loadSignupPage(req:any, res:Response) {
         res.cookie('XSRF-TOKEN', req.csrfToken(), {path:"/",  httpOnly:true, maxAge:3600, sameSite:"none" });
         this.challenge =  this.createChallenge();
         req.session.challenge = this.challenge;
-        res.render('signup', {csrfToken:req.csrfToken(), challenge:this.challenge});
+        res.render('signup', {csrfToken:req.csrfToken(), challenge:this.challenge,  app_data:ExpressHttpContext.get('ctx').app});
 
     }
 
     // @ts-ignore
     @Post('/auth/create')
     public createUser(req:any, res:Response) {
-
         const userData = req.body;
+        const profile = new Profile();
+        profile.public_id = UUID.v4().toString();
+        profile.slug = slugify(userData.name);
         const conn = ExpressHttpContext.get('conn');
-        const H = new UserHelper(conn);
-        H.createNewUser(userData).then((nu: User) => {
-            res.status(201).json(nu);
-            res.end();
-        }).catch(err => {
-            res.status(500).json(err);
-            res.end();
-        })
-        
+        conn.getRepository(Profile).save(profile).then((p: Profile) => {
+            const H = new UserHelper(conn);
+            const C = new ClientHelper(conn);
+           
+            H.createNewUser(userData, p).then((nu: User) => {
+
+                C.createClient({ name: nu.name, id:nu.id }).then((c: Client) => {
+                    res.status(201).json({user:nu, client:c});
+                    res.end();
+                }).catch(err => console.log(err));
+
+              
+            }).catch(err => {
+                res.status(500).json(err);
+                res.end();
+            })
+            
+        });
 
 
     }
 
     @Get('/callback')
     public callbackfunction(req: any, res: Response) {
-        res.json(req);
-        res.end();
+        const conn = ExpressHttpContext.get('conn');
+     
+        conn.getRepository(Client).findOne({ User: req.session.user.id }).then((c: Client) => {
+            const a = new AuthenticateRequest({}, {client_id:c.Identity, secret:c.Secret}, conn, {});
+            a.BuildAuthenticationRequest(req.query.state, req.session.user, c).then((b:any) => {
+                let redirect = b.redirect_uri;
+                res.redirect(redirect);
+            });
+        })
+       
+    }
+
+    @Get('/me')
+    public getMe(req: any, res: Response) {
+        if (!req.session.user || !req.session.isLoggedIn) {
+            res.redirect("/user/login");
+        } else { 
+            const conn = ExpressHttpContext.get('conn');
+            conn.getRepository(User).find({ id: req.session.user.id, relations: ["profile"] }).then((data: any) => {
+               
+                const resData = data;
+                delete resData[0].password;
+                delete resData[0].profile.id;
+                res.json(data);
+                res.end();
+            });
+        }
     }
 
 }

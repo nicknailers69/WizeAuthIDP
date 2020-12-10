@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, Binary } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, Binary, OneToOne, JoinColumn } from "typeorm";
 import { Contains, IsEmail, IsFQDN, IsDate, Min, Max } from "class-validator";
+import { Profile } from "./Profile";
 
 @Entity()
 export class User {
@@ -10,39 +11,41 @@ export class User {
     @Column({unique:true, nullable:false})
     name: string;
 
-    @Column()
+    @Column( {default:""})
     given_name: string;
 
-    @Column()
+    @Column( {default:""})
     middle_name: string;
 
-    @Column()
+    @Column( {default:""})
     family_name: string;
 
-    @Column()
-    profile: string;
+    @Column({ default: "" })
+    nickname: string;
 
     @Column({ unique: true, nullable: false })
     @IsEmail()   
     email: string;
 
-    @Column()
+    @Column({nullable:false})
     password: string;
 
     // will be base64 buffer
-    @Column()
+    @Column( {default:""})
     picture: string;
 
-    @Column()
-    @IsDate()
-    birthdate: Date;
+    @Column({ default: '' })
+    birthdate: string;
 
-    @Column()
+    @Column( {default:"male"})
     @Contains("male" || "female" || "other")
     gender: string;
 
-    @Column()
+    @Column( {default:""})
     phone_number: string;
 
+    @OneToOne(() => Profile)
+    @JoinColumn()
+    profile:Profile;
 
 }
