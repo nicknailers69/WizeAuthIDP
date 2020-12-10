@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import * as TypeORM from "typeorm";
 import {createConnection} from "typeorm";
-import {User} from "./entity/User";
+import { User } from './entity/User';
 import {Client} from "./entity/Client";
 
 /*
@@ -26,4 +26,3 @@ export default createConnection().then(async connection => {
 
 
 export const Connection = async () => await createConnection();
-   

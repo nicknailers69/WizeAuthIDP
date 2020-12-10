@@ -21,7 +21,7 @@ export class Context{
         userinfo_endpoint: "",
         jwks_uri: "",
         scopes_supported: string[],
-        response_types_supported: [ResponseTypesEnum.ID_TOKEN, ResponseTypesEnum.CODE_TOKEN, ResponseTypesEnum.ID_TOKEN_TOKEN, ResponseTypesEnum.ID_TOKEN_TOKEN],
+        response_types_supported:string[],
         subject_types_supported: string[],
         id_token_signing_alg_values_supported: ["RS256"],
         claims_supported: string[]
@@ -44,8 +44,8 @@ export class Context{
                 userinfo_endpoint: "",
                 jwks_uri: "",
                 scopes_supported: DEFAULT_SCOPES.split(","),
-                response_types_supported: [ResponseTypesEnum.ID_TOKEN, ResponseTypesEnum.CODE_TOKEN, ResponseTypesEnum.ID_TOKEN_TOKEN, ResponseTypesEnum.ID_TOKEN_TOKEN],
-                subject_types_supported: [],
+                response_types_supported: ["id_token","code","code_token"],
+                subject_types_supported: ["sub"],
                 id_token_signing_alg_values_supported: ["RS256"],
                 claims_supported: DEFAULT_CLAIMS.split(",")
         }

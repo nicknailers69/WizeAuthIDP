@@ -1,3 +1,4 @@
+import { NextFunction } from 'express';
 import 'reflect-metadata';
 
 import {RouteDefinition} from "../../routes";
@@ -50,7 +51,7 @@ export const Post = (path:string, middleware?:any):MethodDecorator => {
             routes.push({
                 requestMethod: 'post',
                 path,
-                middleware:(next) => {next();},
+                middleware: (req, res, next) => { next();},
                 methodName: propertyKey
             });
         } else {

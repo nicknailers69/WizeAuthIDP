@@ -19,8 +19,8 @@ export class Auth {
   @OneToOne(type => Client) @JoinColumn()
   Client: Client;
     
-    @Column({array:true, type:"string"})
-  scope: string[]
+  @Column()
+  scope: string;
   
   @Column({ nullable: false })
   sub: string;

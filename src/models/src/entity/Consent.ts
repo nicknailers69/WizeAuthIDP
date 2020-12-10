@@ -19,6 +19,6 @@ export class Consent {
   @OneToOne(type => Client) @JoinColumn()
   Client: Client;
     
-    @Column({array:true, type:"string"})
-    scopes: string[]
+    @Column( )
+    scopes: string
 }

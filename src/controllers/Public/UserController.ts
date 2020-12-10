@@ -1,11 +1,22 @@
 import {Controller} from "../../shared/decorators/ControllerClassDecorator";
 import {Get, Post} from "../../shared/decorators/RoutesDecorator";
-import {Request, Response} from "express";
+import { Request, Response, NextFunction } from 'express';
 import {DEFAULT_SCOPES} from "../../shared/interfaces/OpenIDConnect";
 import * as crypto from "crypto";
 import {UserLoginRequest, querySchema} from "../../shared/querySchema/UserLoginRequest";
 import {createValidator, ValidatedRequest} from "express-joi-validation";
 const ExpressHttpContext = require("express-http-context");
+import { UserHelper } from "../Helpers/UserHelper";
+import { User } from '../../models/src/entity/User';
+import { Profile } from '../../models/src/entity/Profile';
+import { ProfileMeta } from '../../models/src/entity/ProfileMeta';
+import { Client } from '../../models/src/entity/Client';
+import { VerifyArgon2 } from "../../shared/libs/EncryptionUtils";
+import { getRepository, getConnection, createConnection } from "typeorm";
+import * as UUID from "uuid";
+import slugify from "slugify";
+import { ClientHelper } from '../Helpers/Client';
+import { AuthenticateRequest } from '../../core/oidc/requests';
 
 const validator = createValidator();
 
@@ -34,6 +45,24 @@ export default class UserController {
         const hash:any = crypto.createHash('sha256').update(challengeBytes.toString('hex'));
         return hash.digest("hex");
     }
+
+    @Post('/login', validator.body(querySchema))
+    public  dologin(req:any, res:Response) {
+        const email = req.sanitize(req.body._email);
+        const password = req.sanitize(req.body._password);
+        const code = crypto.randomBytes(16).toString("base64");
+        const nonce = crypto.randomBytes(8).toString("base64");
+        req.session.nonce = nonce;
+        res.status(201).send({
+            "scope":DEFAULT_SCOPES.split(","),
+            "response_type":"code",
+            "code":code,
+            "nonce":nonce,
+            "id_token":"",
+            "redirect_uri":"/authenticate"
+        });
+        }
+        
 
     // @ts-ignore
     @Post('/auth/authorize', validator.body(querySchema))
@@ -83,35 +112,131 @@ export default class UserController {
     @Post('/auth/authenticate')
     public doLogin(req:any, res:Response) {
 
-        const {scope, response_type, code, nonce, id_token} = req.body;
+        const conn = ExpressHttpContext.get('conn');
+        
+        conn.getRepository(User).findOne({ email: req.body._email }).then((user: User) => {
+            
+            if (user) {
+                this.validateUser(req.body._password, user).then((v: any) => {
+                    req.session.user = v;
+                    req.csrf = req.csrfToken();
+                    //we unset sensitive data
+                    delete req.session.user.password;
+                    delete req.session.user.birthdate;
+                    delete req.session.user.phone_number;
+                    req.session.isLoggedIn = 1;
+                    req.session.isAuthorized = 0;
+                    res.redirect("/user/callback?state="+req.csrfToken());
+                }).catch(err => {
+                    console.log(err);
+                    res.status(401).send("invalid credentials.");
+                })
+            } else {
+                
+                res.status(404).send("user does not exists.");
+            }
+
+        }).catch(err => {
+            console.error(JSON.stringify(err));
+            res.status(500).json(err);
+            res.end();
+        });
 
 
 
     }
 
+    public validateUser(password:string, acct:User) {
+
+        return new Promise((resolve, reject) => {
+            const hash = acct.password;
+            VerifyArgon2(password, hash).then((valid: boolean) => {
+                if (!valid) {
+                    reject(new Error("invalid credentials."));
+                }
+               
+                resolve(acct);
+
+            }).catch(err => {
+                console.log(err);
+                reject(err);
+            });
+
+        });
+            
+
+
+    }
+
     // @ts-ignore
-    @Post('/signup')
+    @Get('/signup')
     public loadSignupPage(req:any, res:Response) {
         res.cookie('XSRF-TOKEN', req.csrfToken(), {path:"/",  httpOnly:true, maxAge:3600, sameSite:"none" });
         this.challenge =  this.createChallenge();
         req.session.challenge = this.challenge;
-        res.render('signup', {csrfToken:req.csrfToken(), challenge:this.challenge});
+        res.render('signup', {csrfToken:req.csrfToken(), challenge:this.challenge,  app_data:ExpressHttpContext.get('ctx').app});
 
     }
 
     // @ts-ignore
     @Post('/auth/create')
     public createUser(req:any, res:Response) {
+        const userData = req.body;
+        const profile = new Profile();
+        profile.public_id = UUID.v4().toString();
+        profile.slug = slugify(userData.name);
+        const conn = ExpressHttpContext.get('conn');
+        conn.getRepository(Profile).save(profile).then((p: Profile) => {
+            const H = new UserHelper(conn);
+            const C = new ClientHelper(conn);
+           
+            H.createNewUser(userData, p).then((nu: User) => {
 
+                C.createClient({ name: nu.name, id:nu.id }).then((c: Client) => {
+                    res.status(201).json({user:nu, client:c});
+                    res.end();
+                }).catch(err => console.log(err));
 
+              
+            }).catch(err => {
+                res.status(500).json(err);
+                res.end();
+            })
+            
+        });
 
 
     }
 
-    @Get('/user/callback')
+    @Get('/callback')
     public callbackfunction(req: any, res: Response) {
-        res.json(req);
-        res.end();
+        const conn = ExpressHttpContext.get('conn');
+     
+        conn.getRepository(Client).findOne({ User: req.session.user.id }).then((c: Client) => {
+            const a = new AuthenticateRequest({}, {client_id:c.Identity, secret:c.Secret}, conn, {});
+            a.BuildAuthenticationRequest(req.query.state, req.session.user, c).then((b:any) => {
+                let redirect = b.redirect_uri;
+                res.redirect(redirect);
+            });
+        })
+       
+    }
+
+    @Get('/me')
+    public getMe(req: any, res: Response) {
+        if (!req.session.user || !req.session.isLoggedIn) {
+            res.redirect("/user/login");
+        } else { 
+            const conn = ExpressHttpContext.get('conn');
+            conn.getRepository(User).find({ id: req.session.user.id, relations: ["profile"] }).then((data: any) => {
+               
+                const resData = data;
+                delete resData[0].password;
+                delete resData[0].profile.id;
+                res.json(data);
+                res.end();
+            });
+        }
     }
 
 }

@@ -5,7 +5,7 @@
     <div class="col-4 col-xl-4 col-lg-4 col-md-12">
 
         <h1 class="pb-5 pt-5 text-center">Login to Wizeauth</h1>
-        <form id="wizeauth_user_login" method="post" action="/user/auth/authorize">
+        <form id="wizeauth_user_login" method="post" action="/user/auth/authenticate">
             <input type="hidden" name="_csrf" value="{{csrfToken}}">
             <input type="hidden" name="_session_id" value="{{session.id}}">
             <input type="hidden" name="_challenge" value="{{challenge}}">

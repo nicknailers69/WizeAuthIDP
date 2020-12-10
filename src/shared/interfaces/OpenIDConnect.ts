@@ -244,6 +244,15 @@ export type OidcSessionModel = {
 }
 
 
+export enum CredentialEncodingModeEnum  {
+  STRICT = 'strict',
+  LOOSE = 'loose'
+};
+
+
+export type CredentialsEncoding = {
+  encodingMode: CredentialEncodingModeEnum;
+}
 
 
 

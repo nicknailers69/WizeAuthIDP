@@ -19,15 +19,15 @@ export class Client {
     @Column({ unique: true, nullable: false })
     Name: string;
 
-    @Column()
+    @Column({default:""})
     Image: string;
 
-    @OneToOne(type => User) @JoinColumn()
-    User: User;
+    @Column({ nullable: false })
+    User: number;
 
 
-    @Column({array:true, type:"string"})
-    redirect_uris:string[];
+    @Column()
+    redirect_uris: string;
 
     
     @Column()
