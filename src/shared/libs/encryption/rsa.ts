@@ -1,4 +1,4 @@
-import * as NodeRSA from "node-rsa";
+import NodeRSA from "node-rsa";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -35,7 +35,15 @@ export class Rsa {
         return this.keyPath.otherPath;
     }
 
-    save() {
+    save(keyType:string | 'server') {
+
+        if(keyType === 'server') {
+            const fileName = path.resolve(__dirname, this.keyPath.serverPath, 'serverKey.key');
+        } else {
+            const fileName = path.resolve(__dirname, this.keyPath.otherPath, `${keyType}.key`);
+        }
+
+
 
     }
 

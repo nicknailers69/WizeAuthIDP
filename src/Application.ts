@@ -39,11 +39,11 @@ export class Application extends WizeAuth {
         this.app.use(Express.json());
         this.app.use(Express.urlencoded({extended:false}));
         this.app.use(expressSanitizer());
-        this.app.use(CookieParser("5DB999F72672EC35208836967E4E800D1EAE7553A245FB3E332263B3CBCF58B1"));
+        this.app.use(CookieParser(process.env.SECRET));
         this.app.use(Session(
             {
                 store: new redisStore({client:redisClient}),
-                secret:"5DB999F72672EC35208836967E4E800D1EAE7553A245FB3E332263B3CBCF58B1",
+                secret:process.env.SECRET,
                 resave:false,
                 saveUninitialized:true
             }
