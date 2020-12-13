@@ -9,7 +9,7 @@ export class Keystore {
     protected _keystore:JWKS.JWK.KeyStore;
     protected jwks:string[] = [];
 
-    constructor(createNew:boolean=false) {
+    constructor(createNew:boolean=true) {
 
         if(createNew === true) {
 
@@ -39,16 +39,23 @@ export class Keystore {
                 JWKS.JWK.asKeyStore(JSON.stringify(this.jwks)).then(k => {
                     ks = k;
                     for(let i = 0; i<10;i++){
-                        this.generateKey('RSA', 2048, {use: "sig", alg: "RSA-OAEP"}).then((key: any) => {
+                        this.generateKey('RSA', 2048, {use: "sig", alg: "RS256"}).then((key: any) => {
                            keys.push(key.toJSON(true));
 
-                           if(keys.length == 10) {
-                               JWKS.JWK.asKeyStore(JSON.stringify(keys)).then(keystore => {
+                            this.generateKey('RSA', 2048, {use: "enc", alg: "RSA-OAEP-256"}).then((key: any) => {
+                                keys.push(key.toJSON(true));
 
-                                   fs.writeFileSync(path.resolve(__dirname, "../..", ".keys", "jwks.json"), JSON.stringify({keys:keys}));
-                               }).catch(err => console.log(err))
-                           }
+
+                                    JWKS.JWK.asKeyStore(JSON.stringify(keys)).then(keystore => {
+
+                                        fs.writeFileSync(path.resolve(__dirname, "../..", ".keys", "jwks.json"), JSON.stringify({keys:keys}));
+                                    }).catch(err => console.log(err))
+
+                            });
+
+
                         });
+
 
 
                     }

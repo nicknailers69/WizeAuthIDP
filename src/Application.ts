@@ -15,7 +15,6 @@ import CSURF from "csurf";
 const redisStore = require('connect-redis')(Session);
 const redisClient = Redis.createClient();
 import expressSanitizer from 'express-sanitizer';
-import requestIp from 'request-ip';
 import expressIP from 'express-ip';
 const app = Express();
 

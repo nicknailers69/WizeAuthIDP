@@ -17,6 +17,10 @@ import * as UUID from "uuid";
 import slugify from "slugify";
 import { ClientHelper } from '../Helpers/Client';
 import { AuthenticateRequest } from '../../core/oidc/requests';
+import {JsonWebToken} from "../../shared/libs/JWT";
+import {verifyChallenge} from "pkce-challenge";
+import PKCE from "pkce-challenge";
+import {v4} from "uuid";
 
 const validator = createValidator();
 
@@ -53,6 +57,7 @@ export default class UserController {
         const code = crypto.randomBytes(16).toString("base64");
         const nonce = crypto.randomBytes(8).toString("base64");
         req.session.nonce = nonce;
+
         res.status(201).send({
             "scope":DEFAULT_SCOPES.split(","),
             "response_type":"code",
@@ -98,7 +103,7 @@ export default class UserController {
         req.session.nonce = nonce;
         res.status(201).send({
             "scope":DEFAULT_SCOPES.split(","),
-            "response_type":"code",
+            "response_type":"id_token",
             "code":code,
             "nonce":nonce,
             "id_token":"",
@@ -118,12 +123,10 @@ export default class UserController {
             
             if (user) {
                 this.validateUser(req.body._password, user).then((v: any) => {
-                    req.session.user = v;
+                    req.session.user = user;
                     req.csrf = req.csrfToken();
                     //we unset sensitive data
-                    delete req.session.user.password;
-                    delete req.session.user.birthdate;
-                    delete req.session.user.phone_number;
+
                     req.session.isLoggedIn = 1;
                     req.session.isAuthorized = 0;
                     res.redirect("/user/callback?state="+req.csrfToken());
@@ -216,7 +219,17 @@ export default class UserController {
             const a = new AuthenticateRequest({}, {client_id:c.Identity, secret:c.Secret}, conn, {});
             a.BuildAuthenticationRequest(req.query.state, req.session.user, c).then((b:any) => {
                 let redirect = b.redirect_uri;
-                res.redirect(redirect);
+               conn.getRepository(User).find(c.User).then((u) => {
+                   const token = new JsonWebToken('id_token', u);
+                   token.createNewToken().then(tok => {
+                       console.log(tok);
+                       res.redirect(redirect+"?id_token="+tok);
+                   });
+
+
+               })
+
+
             });
         })
        
@@ -229,14 +242,108 @@ export default class UserController {
         } else { 
             const conn = ExpressHttpContext.get('conn');
             conn.getRepository(User).find({ id: req.session.user.id, relations: ["profile"] }).then((data: any) => {
-               
-                const resData = data;
-                delete resData[0].password;
-                delete resData[0].profile.id;
-                res.json(data);
-                res.end();
+
+                if(req.query.id_token) {
+                    const token = new JsonWebToken('id_token', {});
+                    token.verifySignature(req.query.id_token).then((v) => {
+                        console.log(v.code);
+                        if(v.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' && res.getHeader('x-id-token-verified') === 0) {
+                            req.session.destroy();
+                            res.setHeader('x-id-token-verified', 0);
+                            res.setHeader('x-wyzer-user-id', null);
+                            res.setHeader('x-wyzer-authorized', null);
+                            res.setHeader('x-wyzer-profile-id', null);
+                            res.setHeader('x-wyzer-scopes', null);
+                            res.redirect("/user/login");
+                        }
+                        const resData = data;
+                        delete resData[0].password;
+
+                        const expires = new Date("+1 day");
+                        res.setHeader('x-id-token-verified', 1);
+                        res.setHeader('x-wyzer-user-id', `${data[0].id}`);
+                        res.setHeader('x-wyzer-authorized', 1);
+                        res.setHeader('x-wyzer-scopes', 'own_profile:all');
+                        res.cookie('x-wyzer-profile-id', data[0].profile.public_id, {sameSite:"none",secure:true,httpOnly:true,domain:".wyzer.wizegene.com", expires:expires});
+                        res.cookie('x-wyzer-provider-sso', 1, {sameSite:"none",secure:true,httpOnly:true,domain:".wyzer.wizegene.com", expires:expires});
+                        res.cookie('x-wyzer-provider-id', v.aud,  {sameSite:"none",secure:true,httpOnly:true,domain:".wyzer.wizegene.com", expires:expires})
+                        const redirectTo = v.aud.replace("urn:","https://").replace(":audience","/");
+                        const code = PKCE(43);
+                        const verifier = code.code_verifier;
+                        req.session.verifier = verifier;
+                        req.session.remote = redirectTo;
+
+                        res.redirect(redirectTo+"?provider=wyzer&code="+code.code_challenge);
+
+                    }).catch(e => {
+                        res.redirect("/user/login");
+                    });
+                }
+
             });
         }
     }
+
+    @Post('/remote/code')
+    public verifyCodeRemote(req:any, res:Response) {
+
+        const verifier = req.session.verifier;
+        if(!verifier) {
+            res.status(502).send('invalid request');
+            return;
+        }
+
+        const code = req.body.code;
+        if(!code) {
+            res.status(502).send('invalid request');
+            return;
+        }
+
+        if(!!(verifyChallenge(verifier, code))) {
+
+
+            res.cookie('x-wyzer-prompt','consent');
+            const consentID = v4().toString();
+            res.cookie('x-wyzer-consent-id', consentID);
+            res.sendStatus(201);
+            return;
+        }
+
+        res.status(502).send('invalid request');
+        return;
+
+
+    }
+
+    @Get('/remote/popup/consent')
+    public showRemoteConsent(req:any, res:any) {
+
+            const consentID = req.query.consent_id;
+            const user = req.query.user_id;
+            const requester = req.query.requester;
+            const showConsent = req.query.show;
+
+            const consentHtml = "<style>* {font-family:Helvetica, Arial, sans-serif;}</style><script src='https://cdn.jsdelivr.net/npm/sweetalert2@10'></script><script type='application/javascript'>" +
+                "" +
+                "function approveConsent() { return true; } function denyConsent() {return false}</script><div id='wyzer-consent-popup'><form id='consent__"+consentID+"'>" +
+                "<input type='hidden' name='consent_id' value='"+consentID+"'/>" +
+                "<input type='hidden' name='user_id' value='"+user+"' />" +
+                "<input type='hidden' name='requester' value='"+requester+"'/>" +
+                "<input type='hidden' name='session_id' value='"+req.session.id+"'/>" +
+                "<input type='hidden' id='show_consent' data-show='"+showConsent+"'/>" +
+                "</div></form><script>" +
+                "Swal.fire({" +
+                "title:'Do you want to approve "+requester.toUpperCase()+" to use Wyzer to access your full profile?'," +
+                "showDenyButton:true," +
+                "showCancelButton:true," +
+                "confirmButtonText:'I APPROVE'})</script>";
+
+            res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+            res.status(200).send(consentHtml);
+            return;
+
+
+    }
+
 
 }

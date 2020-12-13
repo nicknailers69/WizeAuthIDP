@@ -1,18 +1,16 @@
 import {Context, DefaultContext} from "./Context";
 import {Injectable} from "../shared/decorators/Injectable";
-import {InjectProperty} from "../shared/decorators/InjectProperies";
-import * as typeorm from "typeorm";
 import * as events from "events";
-import { DEFAULT_CLAIMS, DEFAULT_SCOPES } from '../shared/interfaces/OpenIDConnect';
+import {DEFAULT_CLAIMS, DEFAULT_SCOPES} from '../shared/interfaces/OpenIDConnect';
 import {Keystore} from "../shared/libs/Keystore";
 import {JWK} from "node-jose";
 import * as Express from "express";
-import { User } from '../models/src/entity/User';
-import { Provider } from './Provider';
-import { Json } from "../shared/interfaces/JsonArray";
-import { Client } from "../models/src/entity/Client";
-import { AccessToken } from "../models/src/entity/AccessToken";
-import { Auth } from "../models/src/entity/Auth";
+import {User} from '../models/src/entity/User';
+import {Provider} from './Provider';
+import {Json} from "../shared/interfaces/JsonArray";
+import {Client} from "../models/src/entity/Client";
+import {AccessToken} from "../models/src/entity/AccessToken";
+import {Auth} from "../models/src/entity/Auth";
 
 
 export interface IWizeAuth {
@@ -127,11 +125,9 @@ export class WizeAuth extends events.EventEmitter implements IWizeAuth  {
         subject_types_supported: Json,
         id_token_signing_alg_values_supported: Json,
         claims_supported: Json) {
-        
-        const provider = new Provider(issuer, authorization_endpoint, userinfo_endpoint, jwks_uri, scopes_supported, response_types_supported, subject_types_supported,
+
+        return new Provider(issuer, authorization_endpoint, userinfo_endpoint, jwks_uri, scopes_supported, response_types_supported, subject_types_supported,
             id_token_signing_alg_values_supported, claims_supported);
-        
-        return provider;
 
     }
 

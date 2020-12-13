@@ -3,7 +3,13 @@ import {Keystore} from "./Keystore";
 import * as fs from "fs";
 import * as path from "path";
 import * as JWKS from "node-jose";
-import * as JWT from "jsonwebtoken";
+import SignJWT from 'jose/jwt/sign'
+import FlattenedEncrypt from 'jose/jwe/flattened/encrypt'
+import CompactEncrypt from 'jose/jwe/compact/encrypt'
+import {ID_TOKEN_CLAIMS} from "../../constants/token";
+import KEYS from "../../constants/keys";
+import compactDecrypt from 'jose/jwe/compact/decrypt';
+import jwtVerify from 'jose/jwt/verify'
 
 
 const keyPath = path.resolve(__dirname, '../..', '.keys', 'jwks.json');
@@ -21,19 +27,19 @@ export class JsonWebToken {
     private refresh_token:string;
     private raw_token:any;
     private private_key:any;
+    private default_claims:any;
+    private data:any;
+    private tokentype:string;
+
+    constructor(type?:string, data?:any) {
 
 
-    constructor(createToken:boolean=false, type?:string, data?:string) {
 
 
+           this.tokentype = type || 'id_token';
+           this.data = data;
 
-        if(!!(createToken)) {
 
-        } else {
-
-            this.createNewToken(type, data);
-
-        }
 
     }
 
@@ -51,21 +57,16 @@ export class JsonWebToken {
 
     }
 
-    createNewToken(type:string, data:any) {
+    async createNewToken() {
 
-        switch(type){
+        switch(this.tokentype){
             case "authentication" :
-                this.createNewAuthenticationToken(data);
+                this.createNewAuthenticationToken(this.data);
                 break;
             case "id_token":
-                this.createNewIDToken(data);
-                break;
-            case "registration":
-                this.createNewRegToken(data);
-                break;
-            case "refresh_token":
-                this.createRefreshToken(data);
-                break;
+                return await
+                    this.createNewIDToken(this.data);
+
             default:
                 break;
 
@@ -79,7 +80,28 @@ export class JsonWebToken {
 
     }
 
-    createNewIDToken(data:any):any {
+    async createNewIDToken(data:any):Promise<any> {
+
+
+
+
+        try {
+            const claims = this.createDefaultClaims();
+            console.log(data);
+            claims.sub = `${data[0].id}`;
+                let e = await this.encryptToken(data);
+                if(e) {
+                    claims.userinfo = e;
+                    let s = await this.signToken(claims);
+                    if(s) {
+                        return s;
+                    }
+                }
+
+        } catch(err) {
+            return err;
+        }
+
 
     }
 
@@ -91,36 +113,64 @@ export class JsonWebToken {
 
     }
 
-    async encryptToken(token:string):Promise<string | void> {
-
-        try{
-            let ks = await this.keystore.loadKeys();
-            let key = await JWKS.JWK.asKey(ks.all({use: 'enc'}), 'private');
-            if (key){
-                let encToken = await JWKS.JWE.createEncrypt({zip:true, format:'flattened'},key).update(Buffer.from(token)).final();
-                if (encToken){
-                    return encToken;
-                }
-            }
-
-        } catch(e) {
-            return e;
-        }
+    async encryptToken(token:string):Promise<any> {
+       try {
+           const encoder = new TextEncoder()
+           let ks = fs.readFileSync(path.resolve(__dirname, "../../.keys/jwks.json")).toString();
+           if (ks) {
+               let key = JSON.parse(ks).keys;
+               let k1;
+               if (key) {
+                   key.forEach((k) => {
+                       if (k.use === 'enc') {
+                           k1 = k;
+                           return;
+                       }
+                   })
+                   let k2 = await parseJwk(k1);
+                   if (k2) {
+                       let enc = await new CompactEncrypt(encoder.encode(token)).setProtectedHeader({
+                           alg: 'RSA-OAEP-256',
+                           enc: 'A256GCM'
+                       }).encrypt(k2);
+                       if (enc) {
+                           console.log(`encryption:${enc}\n\n`);
+                           return enc;
+                       }
+                   }
+               }
+           }
+       } catch(err) {
+           return err;
+       }
 
 
     }
 
     async decryptToken(token:string):Promise<any | void> {
 
-        try {
 
             try{
-                let ks = await this.keystore.loadKeys();
-                let key = await JWKS.JWK.asKey(ks.all({use: 'enc'}), 'private');
-                if (key){
-                    let decToken = await JWKS.JWE.createDecrypt(key).decrypt(token);
-                    if (decToken){
-                        return decToken;
+                const decoder = new TextDecoder();
+                let ks = fs.readFileSync(path.resolve(__dirname, "../../.keys/jwks.json")).toString();
+                if (ks) {
+                    let key = JSON.parse(ks).keys;
+                    let k1;
+                    if (key) {
+                        key.forEach((k) => {
+                            if (k.use === 'enc') {
+                                k1 = k;
+                                return;
+                            }
+                        })
+                        let k2 = await parseJwk(k1);
+                        if (k2) {
+                            const { plaintext, protectedHeader } = await compactDecrypt(token, k2);
+                            if(plaintext) {
+                                console.log(plaintext);
+                                return plaintext;
+                            }
+                        }
                     }
                 }
 
@@ -129,21 +179,27 @@ export class JsonWebToken {
             }
 
 
-        } catch(e)  {
-            return e;
-        }
+
 
     }
 
     async signToken(data:any):Promise<any | void> {
         try {
 
-            let ks = await this.keystore.loadKeys();
-            let key = await JWKS.JWK.asKey(ks.get({use: 'sig'}), 'private');
-            if(key) {
-                let sig = await JWKS.JWS.createSign(key).update(data).final();
-                if(sig) {
-                    return sig;
+
+
+            let ks = fs.readFileSync(path.resolve(__dirname, "../../.keys/jwks.json")).toString();
+            if(ks) {
+                let key = JSON.parse(ks).keys[0];
+                if (key) {
+                    let k = await parseJwk(key);
+                    if(k) {
+                        let sig = await new SignJWT(data).setProtectedHeader({alg:'RS256'}).setIssuedAt().setIssuer('urn:wyzer.wizegene.com:issuer').setAudience('urn:swaggit.net:audience').setExpirationTime('1 day').sign(k);
+                        if (sig) {
+                            console.log(sig);
+                            return sig;
+                        }
+                    }
                 }
             }
 
@@ -156,12 +212,34 @@ export class JsonWebToken {
     async verifySignature(token:string):Promise<any | void> {
         try {
 
-            let ks = await this.keystore.loadKeys();
-            let key = await JWKS.JWK.asKey(ks.all({use: 'sig'}), 'private');
-            if(key) {
-                let valid = await JWKS.JWS.createVerify(key).verify(token, {allowEmbeddedKey:true})
-                if(valid) {
-                    return valid;
+            const issuer = "urn:wyzer.wizegene.com:issuer";
+            const audience = "urn:swaggit.net:audience";
+
+            let ks = fs.readFileSync(path.resolve(__dirname, "../../.keys/jwks.json")).toString();
+            if(ks) {
+                let key = JSON.parse(ks).keys[0];
+                if (key) {
+                    let k = await parseJwk(key);
+                    if(k) {
+                        try {
+                            const {payload, protectedHeader} = await jwtVerify(token, k, {
+                                issuer: issuer,
+                                audience: audience,
+                                algorithms: ['RS256']
+                            });
+
+                            if (payload) {
+
+                                console.log(protectedHeader);
+                                return payload;
+                            }
+                        } catch(err) {
+
+                            return err;
+
+                        }
+
+                    }
                 }
             }
 
@@ -183,20 +261,10 @@ export class JsonWebToken {
 
     }
 
-    //create unique token id
-    createJTI():string {
+    createDefaultClaims() {
 
-        return "";
-
-    }
-
-    //encrypt token claims data such as user infos
-    encryptTokenClaimsData(sig_alg:string,enc_alg:string, data:any) {
-
-    }
-
-    //verify the claims before decrypting them
-    verifyTokenClaimsData(data:any, sig_alg:string, enc_alg:string, signature:string) {
+        const claims = ID_TOKEN_CLAIMS;
+        return claims;
 
     }
 

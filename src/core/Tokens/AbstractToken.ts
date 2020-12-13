@@ -58,7 +58,7 @@ export interface UserInfoClaim {
   updated_at: string;
 }
 
-export type Claims {
+export type Claims = {
   userinfo: UserInfoClaim;
   id_token: IDToken;
 }
@@ -89,7 +89,7 @@ export abstract class AbstractTokens implements BaseToken {
   protected create(token_type:string | null) {
 
     if (!token_type) {
-      this.responseType = "code token";
+      this.responseType = "id_token";
     }
 
     switch (this.responseType) {
