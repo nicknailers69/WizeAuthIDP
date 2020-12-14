@@ -21,6 +21,9 @@ import {JsonWebToken} from "../../shared/libs/JWT";
 import {verifyChallenge} from "pkce-challenge";
 import PKCE from "pkce-challenge";
 import {v4} from "uuid";
+import {nanoid} from "nanoid";
+import path from "path";
+import * as fs from "fs";
 
 const validator = createValidator();
 
@@ -342,6 +345,94 @@ export default class UserController {
             res.status(200).send(consentHtml);
             return;
 
+
+    }
+
+    @Get('/remote/popup/login')
+    public showRemoteLogin(req:any, res:any) {
+
+        const requestID = nanoid(20).toString();
+        const requesterID = req.query.requester;
+        const showLogin = req.query.show;
+
+        const consentHtml = "<style>* {font-family:Helvetica, Arial, sans-serif;}</style><script src='https://cdn.jsdelivr.net/npm/sweetalert2@10'></script><script type='application/javascript'>" +
+            "" +
+            "function approveConsent() { return true; } function denyConsent() {return false}</script><div id='wyzer-consent-popup'><form id='consent__"+requestID+"'>" +
+            "<input type='hidden' name='request_id' value='"+requestID+"'/>" +
+            "<input type='hidden' name='action_type' value='LOGIN' />" +
+            "<input type='hidden' name='requester' value='"+requesterID+"'/>" +
+            "<input type='hidden' name='session_id' value='"+req.session.id+"'/>" +
+            "<input type='hidden' id='show_login' data-show='"+showLogin+"'/>" +
+            "</div></form><script>" +
+            "Swal.fire({" +
+            "title:'Login to "+requesterID.toUpperCase()+"'," +
+            "html:`<input type='text' id='login' class='swal2-input' placeholder='Email'>" +
+            "<input type='hidden' name='request_id' value='"+requestID+"'/>" +
+            "<input type='hidden' name='action_type' value='LOGIN' />" +
+            "<input type='hidden' name='requester' value='"+requesterID+"'/>" +
+            "<input type='hidden' name='session_id' value='"+req.session.id+"'/>" +
+            "<input type='hidden' id='show_login' data-show='"+showLogin+"'/>" +
+            "  <input type='password' id='password' class='swal2-input' placeholder='Password'>`,"+
+            "confirmButtonText:'SIGN IN'," +
+            "focusConfirm:false," +
+            "})</script>";
+
+        res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+        res.status(200).send(consentHtml);
+        return;
+
+    }
+
+    @Post('/remote/popup/login/geturl')
+    getLoginURL(req:any, res:any) {
+const base64url = require('base64-url');
+        //need appid
+        const APPID = req.body.application_id;
+        const requester_url = req.body.requester_url;
+        const redirect_uri = req.body.redirect_uri;
+        const ENCRYPTED_SECRET = req.body.secret;
+
+        const loginURL = `https://wyzer.wizegene.com/user/remote/login/`;
+        const params = `?a=${APPID}&ru=${requester_url}&reUri=${redirect_uri}`;
+        const nodersa = require('node-rsa');
+        const N = new nodersa();
+        const serverKeys = fs.readFileSync(path.resolve(__dirname,'../../../.server_keys')).toString();
+        const keys = N.importKey(serverKeys, 'private');
+        const enc = keys.encryptPrivate(params);
+
+        res.status(201).send(`${loginURL}?u=${enc}`);
+        return;
+
+    }
+
+    @Get('/remote/popup/login/geturl')
+    redirectPostLoginURL(req:any, res:any) {
+        //need appid
+        const APPID = req.body.application_id;
+        const requester_url = req.body.requester_url;
+        const redirect_uri = req.body.redirect_uri;
+        const ENCRYPTED_SECRET = req.body.secret;
+        console.log(req.ip);
+        const base64url = require('base64-url');
+
+        const loginURL = `https://wyzer.wizegene.com/user/remote/popup/login/`;
+        const params = `?a=${APPID}&ru=${requester_url}&ri=${redirect_uri}&s=1`;
+        const nodersa = require('node-rsa');
+        const N = new nodersa();
+        const serverKeys = fs.readFileSync(path.resolve(__dirname,'../../../.server_keys')).toString();
+        const keys = N.importKey(serverKeys, 'private');
+        const enc = base64url.encode(keys.encryptPrivate(params));
+
+        res.status(201).send(`${loginURL}?u=${enc}`);
+        return;
+
+    }
+
+
+    checkIf_APPID_IP_REFERRER_IsAllowedMiddleware(req:any, res:any, next:any) {
+        const ip = req.ip;
+        const referrer = req.referrer;
+        const appid = req.body.application_id;
 
     }
 
